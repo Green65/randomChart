@@ -3,37 +3,49 @@
   <head>
     <meta charset="UTF-8" />
     <title>line chart</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@1.26.0"></script>
+		<script src="https://cdn.jsdelivr.net/npm/chart.js@3.0.1/dist/chart.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.0.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.1.1"></script>
     <script>
+      const split = (array, n) => array.reduce((a, c, i) => i % n == 0 ? [...a, [c]] : [...a.slice(0, -1), [...a[a.length - 1], c]], []);
       window.onload = function () {
-        const context = document.querySelector("#fukuoka_temperature_chart").getContext('2d')
-        const canvas = document.querySelector('canvas');
+        const context = document.querySelector("#fukuoka_temperature_chart").getContext('2d');
+        const canvas = document.querySelector("#fukuoka_temperature_chart");
+        let date = luxon.DateTime.fromRFC2822("01 Apr 2017 00:00 Z");
         const url = new URL(window.location.href);
         const params = url.searchParams;
-        const chartSize = params.get("s") || 5000
-        canvas.setAttribute("width", document.body.clientWidth);
+        const chartSize = params.get("s") || 60 * 1000
+        const width = Math.max(Math.floor(document.body.clientWidth * chartSize / (60 * 300)), document.body.clientWidth)
+        canvas.setAttribute("width", width);
         canvas.setAttribute("height", document.documentElement.clientHeight);
         const  label = [];
-        const data = [];
+        const chartData = [];
         let num = 0;
         for(let i = 1;i<chartSize;i++) {
           const rnd = parseInt(Math.random()*2,10)
           if(rnd === 1) num++
           if(rnd === 0) num--;
           label.push(i);
-          data.push(num);
+          chartData.push(num);
         }
+        const hourChartData = split(chartData, 60).map(v=>{
+          date = date.plus({hour: 1});
+          return ({
+            x: date.valueOf(),
+            o: v[0],
+            h: Math.max(...v),
+            l: Math.min(...v),
+            c: v[59]
+          })
+        });
+  
         new Chart(context, {
-          type: 'line',
+          type: 'candlestick',
           data: {
-            labels: label,
             datasets: [{
               label: "Random Chart",
-              data: data,
-              borderColor: '#ff6347',
-              backgroundColor: '#ff6347',
-              borderWidth: 3,
-              pointRadius: 0
+              data: [...hourChartData]
             }],
           },
           options: {
